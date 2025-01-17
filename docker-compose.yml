@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      OLLAMA_HOST: "0.0.0.0:11434"
+    runtime: nvidia
+    restart: unless-stopped
+
+  zrok-ollama:
+    image: openziti/zrok
+    restart: unless-stopped
+    user: "${UID}:${GID}"
+    volumes:
+      - ${HOME}/.zrok:/mnt/.zrok
+    environment:
+      HOME: /mnt
+      PFXLOG_NO_JSON: "true"
+      ZROK_UNIQUE_NAME:  
+    command: share reserved ${ZROK_UNIQUE_NAME} --headless --override-endpoint http://ollama:11434
+
+volumes:
+  ollama:
